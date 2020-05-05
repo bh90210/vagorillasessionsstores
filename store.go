@@ -132,8 +132,6 @@ func (s *BadgerStore) Save(r *http.Request, w http.ResponseWriter,
 	}
 
 	if session.ID == "" {
-		// Because the ID is used in the filename, encode it to
-		// use alphanumeric characters only.
 		session.ID = strings.TrimRight(
 			base32.StdEncoding.EncodeToString(
 				securecookie.GenerateRandomKey(32)), "=")
