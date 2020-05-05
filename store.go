@@ -2,25 +2,20 @@
 package badgerstore
 
 import (
+	"encoding/base32"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 
 	badger "github.com/dgraph-io/badger/v2"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 )
 
-// BadgerStore stores sessions using BadgerDB
-type BadgerStore struct {
-	Codecs  []securecookie.Codec
-	Options *sessions.Options
-
-	db *badger.DB
-}
-
 // NewBadgerStore returns a new BadgerStore.
 //
-// Filesystem directory where Badger is located. It will be created if it doesn't exist.
+// Path represents a filesystem directory where Badger is located. It will be created if it doesn't exist.
 // Badger's DefaultOptions are used badger.DefaultOptions(path).
 // For use with custom options see NewBadgerStoreWithOpts()
 //
@@ -36,7 +31,7 @@ type BadgerStore struct {
 // AES-128, AES-192, or AES-256 modes.
 func NewBadgerStore(path string, keyPairs ...[]byte) (*BadgerStore, error) {
 	if path == "" {
-		path = os.TempDir()
+		path = filepath.Join(os.TempDir(), "badger")
 	}
 
 	db, err := badger.Open(badger.DefaultOptions(path))
@@ -79,6 +74,13 @@ func NewBadgerStoreWithOpts(opts badger.Options, keyPairs ...[]byte) (*BadgerSto
 	return store, nil
 }
 
+// BadgerStore stores sessions using BadgerDB
+type BadgerStore struct {
+	Codecs  []securecookie.Codec
+	Options *sessions.Options
+	db      *badger.DB
+}
+
 // Get returns a session for the given name after adding it to the registry.
 //
 // It returns a new session if the sessions doesn't exist. Access IsNew on
@@ -87,8 +89,7 @@ func NewBadgerStoreWithOpts(opts badger.Options, keyPairs ...[]byte) (*BadgerSto
 // It returns a new session and an error if the session exists but could
 // not be decoded.
 func (s *BadgerStore) Get(r *http.Request, name string) (*sessions.Session, error) {
-	// return GetRegistry(r).Get(s, name)
-	return nil, nil
+	return sessions.GetRegistry(r).Get(s, name)
 }
 
 // New returns a session for the given name without adding it to the registry.
@@ -103,8 +104,9 @@ func (s *BadgerStore) New(r *http.Request, name string) (*sessions.Session, erro
 	session.IsNew = true
 	var err error
 	if c, errCookie := r.Cookie(name); errCookie == nil {
-		err = securecookie.DecodeMulti(name, c.Value, &session.Values,
+		err = securecookie.DecodeMulti(name, c.Value, &session.ID,
 			s.Codecs...)
+		err = s.load(session)
 		if err == nil {
 			session.IsNew = false
 		}
@@ -113,9 +115,33 @@ func (s *BadgerStore) New(r *http.Request, name string) (*sessions.Session, erro
 }
 
 // Save adds a single session to the response.
+//
+// If the Options.MaxAge of the session is <= 0 then the session file will be
+// deleted from the store path. With this process it enforces the properly
+// session cookie handling so no need to trust in the cookie management in the
+// web browser.
 func (s *BadgerStore) Save(r *http.Request, w http.ResponseWriter,
 	session *sessions.Session) error {
-	encoded, err := securecookie.EncodeMulti(session.Name(), session.Values,
+	// Delete if max-age is <= 0
+	if s.Options.MaxAge <= 0 {
+		if err := s.erase(session); err != nil {
+			return err
+		}
+		http.SetCookie(w, sessions.NewCookie(session.Name(), "", session.Options))
+		return nil
+	}
+
+	if session.ID == "" {
+		// Because the ID is used in the filename, encode it to
+		// use alphanumeric characters only.
+		session.ID = strings.TrimRight(
+			base32.StdEncoding.EncodeToString(
+				securecookie.GenerateRandomKey(32)), "=")
+	}
+	if err := s.save(session); err != nil {
+		return err
+	}
+	encoded, err := securecookie.EncodeMulti(session.Name(), session.ID,
 		s.Codecs...)
 	if err != nil {
 		return err
@@ -136,4 +162,54 @@ func (s *BadgerStore) MaxAge(age int) {
 			sc.MaxAge(age)
 		}
 	}
+}
+
+func (s *BadgerStore) save(session *sessions.Session) error {
+	encoded, err := securecookie.EncodeMulti(session.Name(), session.Values,
+		s.Codecs...)
+	if err != nil {
+		return err
+	}
+	return s.db.Update(func(txn *badger.Txn) error {
+		err := txn.Set([]byte("session_"+session.ID), []byte(encoded))
+		return err
+	})
+}
+
+func (s *BadgerStore) load(session *sessions.Session) error {
+	var queryResp []byte
+
+	err := s.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte("session_" + session.ID))
+		if err != nil {
+			return err
+		}
+
+		err = item.Value(func(val []byte) error {
+			queryResp = append(queryResp, val...)
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return securecookie.DecodeMulti(session.Name(), string(queryResp), &session.Values, s.Codecs...)
+}
+
+func (s *BadgerStore) erase(session *sessions.Session) error {
+	err := s.db.Update(func(txn *badger.Txn) error {
+		err := txn.Delete([]byte("session_" + session.ID))
+		return err
+	})
+	if err != nil {
+		return err
+	}
+
+	return err
 }
