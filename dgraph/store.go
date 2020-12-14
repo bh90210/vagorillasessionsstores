@@ -1,5 +1,5 @@
-// Package badger is a Gorilla sessions.Store implementation for BadgerDB
-package badger
+// Package dgraph is a Gorilla sessions.Store implementation for BadgerDB
+package dgraph
 
 import (
 	"encoding/base32"
