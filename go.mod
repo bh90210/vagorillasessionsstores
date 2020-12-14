@@ -1,6 +1,6 @@
-module github.com/bh90210/badgerstore
+module github.com/bh90210/vaGorillaSessionsStores
 
-go 1.13
+go 1.15
 
 require (
 	github.com/dgraph-io/badger/v2 v2.0.3

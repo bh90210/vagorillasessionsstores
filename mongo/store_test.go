@@ -1,4 +1,4 @@
-package badgerstore
+package mongo
 
 import (
 	"net/http"

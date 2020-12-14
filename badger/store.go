@@ -1,5 +1,5 @@
-// Package badgerstore is a Gorilla sessions.Store implementation for BadgerDB
-package badgerstore
+// Package badger is a Gorilla sessions.Store implementation for BadgerDB
+package badger
 
 import (
 	"encoding/base32"
@@ -160,6 +160,15 @@ func (s *BadgerStore) MaxAge(age int) {
 			sc.MaxAge(age)
 		}
 	}
+}
+
+// Helper function for session edit/delete sessions without http request from the user
+func (s *BadgerStore) Edit(id session.ID) {
+
+}
+
+func (s *BadgerStore) Delete(id session.ID) {
+
 }
 
 func (s *BadgerStore) save(session *sessions.Session) error {
