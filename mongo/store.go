@@ -223,7 +223,7 @@ func (s *Store) load(session *sessions.Session) error {
 	res := s.db.FindOne(ctx, entry)
 	log.Println("response", res)
 	err := res.Decode(&result)
-	log.Println("result", result)
+	log.Println("result", result.Value)
 	if err != nil {
 		return (err)
 	}
