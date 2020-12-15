@@ -187,8 +187,8 @@ func (s *Store) Delete(session *sessions.Session) {
 
 type SessionEntry struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty"`
-	SessionID string             `bson:”sessionid,omitempty”`
-	Value     string             `bson:”value,omitempty”`
+	SessionID string             `bson:"sessionid,omitempty"`
+	Value     string             `bson:"value,omitempty"`
 }
 
 func (s *Store) save(session *sessions.Session) error {
