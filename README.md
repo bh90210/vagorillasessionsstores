@@ -28,7 +28,7 @@ import stores "github.com/bh90210/vagorillasessionsstores"
 opts := badger.Options{
 		Dir: "/data/dir",
 }
-store, _ := stores.NewBadgerStoreWithOpts(opts)
+store, _ := stores.NewBadgerStoreWithOpts(opts,[]byte(os.Getenv("SESSION_KEY")))
 ```
 
 ## Mongo
@@ -45,7 +45,7 @@ cred.AuthSource = "YourAuthSource"
 cred.Username = "YourUserName"
 cred.Password = "YourPassword"
 clientOptions := options.Client().ApplyURI(os.Getenv("MONGO_DB_URI")).SetAuth(cred)
-store, _ := stores.NewMongoStore(clientOptions)
+store, _ := stores.NewMongoStore(clientOptions, []byte(os.Getenv("SESSION_KEY")))
 ```
 
 ## Dgraph
