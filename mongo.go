@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/base32"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -146,17 +145,17 @@ func (s *MongoStore) Save(r *http.Request, w http.ResponseWriter,
 			base32.StdEncoding.EncodeToString(
 				securecookie.GenerateRandomKey(32)), "=")
 	}
-	log.Println("pre save")
+
 	if err := s.save(session); err != nil {
 		return err
 	}
-	log.Println("after save")
+
 	encoded, err := securecookie.EncodeMulti(session.Name(), session.ID,
 		s.Codecs...)
 	if err != nil {
 		return err
 	}
-	log.Println("cookies set")
+
 	http.SetCookie(w, sessions.NewCookie(session.Name(), encoded, session.Options))
 	return nil
 }
