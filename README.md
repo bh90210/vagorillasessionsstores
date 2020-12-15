@@ -37,17 +37,28 @@ store, _ := badger.NewBadgerStoreWithOpts(opts)
 ```go
 import "github.com/bh90210/vaGorillaSessionsStores/mongo"
 
-store, _ := badger.NewMongoStore("mongodb://localhost:27017")
+store, _ := mongo.NewMongoStore("mongodb://localhost:27017")
 ```
 
 ### With custom options:
 ```go
-import "github.com/bh90210/vaGorillaSessionsStores/mongo"
+import (
+	mongoStore "github.com/bh90210/vaGorillaSessionsStores/mongo"
+	"go.mongodb.org/mongo-driver/mongo"
+)
 
 client, _ := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
-store, _ := badger.NewMongoStoreWithOpts(client)
+store, _ := mongoStore.NewMongoStoreWithOpts(client)
 ```
 
 ## Dgraph
+_work in progress_
 
+## Help function
+Each store provides two helper functions for direct back-end session manipulation without http request. 
+
+### Edit
+_work in progress_
+
+### Delete 
 _work in progress_
