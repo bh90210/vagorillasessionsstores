@@ -11,14 +11,11 @@ import (
 
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
-
-type SessionEntry struct {
-	SessionID string `json:”sessionid,omitempty”`
-	Value     string `json:”value,omitempty”`
-}
 
 // NewMongoStore returns a new Mongo backed store.
 //
@@ -197,14 +194,23 @@ func (s *Store) save(session *sessions.Session) error {
 
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	// _, err = s.db.InsertOne(ctx, bson.M{"sessionID": session.ID, "value": encoded})
-	_, err = s.db.InsertOne(ctx, SessionEntry{SessionID: session.ID, Value: encoded})
+	_, err = s.db.InsertOne(ctx, bson.D{
+		{Key: "sessionid", Value: session.ID},
+		{Key: "value", Value: encoded},
+	})
 	return err
 }
 
 func (s *Store) load(session *sessions.Session) error {
-	var result SessionEntry
+	// var result SessionEntry
+	var result struct {
+		ID        primitive.ObjectID `bson:"_id,omitempty"`
+		SessionID string             `bson:”sessionid,omitempty”`
+		Value     string             `bson:”value,omitempty”`
+	}
+
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	err := s.db.FindOne(ctx, SessionEntry{SessionID: session.ID}).Decode(&result)
+	err := s.db.FindOne(ctx, bson.M{"sessionid": session.ID}).Decode(&result)
 	if err != nil {
 		return (err)
 	}
@@ -214,6 +220,6 @@ func (s *Store) load(session *sessions.Session) error {
 
 func (s *Store) erase(session *sessions.Session) error {
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	_, err := s.db.DeleteOne(ctx, SessionEntry{SessionID: session.ID})
+	_, err := s.db.DeleteOne(ctx, bson.M{"sessionid": session.ID})
 	return err
 }
