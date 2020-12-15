@@ -9,7 +9,7 @@ import (
 // Test for BadgerStore
 func TestBadgerStore(t *testing.T) {
 	originalPath := "/"
-	store, err := NewBadgerStore("/home/ktc/Desktop/test1")
+	store, err := NewBadgerStore("/test1")
 	if err != nil {
 		t.Fatal("failed to create request", err)
 	}
@@ -33,7 +33,7 @@ func TestBadgerStore(t *testing.T) {
 
 // Test delete badger store with max-age: -1
 func TestBadgerStoreDelete(t *testing.T) {
-	store, err := NewBadgerStore("/home/ktc/Desktop/test2", []byte("some key"))
+	store, err := NewBadgerStore("/test2", []byte("some key"))
 	if err != nil {
 		t.Fatal("failed to create request", err)
 	}
@@ -63,7 +63,7 @@ func TestBadgerStoreDelete(t *testing.T) {
 
 // Test delete badger store with max-age: 0
 func TestBadgerStoreDelete2(t *testing.T) {
-	store, err := NewBadgerStore("/home/ktc/Desktop/test3", []byte("some key"))
+	store, err := NewBadgerStore("/test3", []byte("some key"))
 	if err != nil {
 		t.Fatal("failed to create request", err)
 	}
