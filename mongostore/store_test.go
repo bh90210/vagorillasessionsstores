@@ -1,4 +1,4 @@
-package mongo
+package mongostore
 
 // import (
 // 	"net/http"

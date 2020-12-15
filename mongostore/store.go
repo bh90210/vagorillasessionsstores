@@ -1,5 +1,5 @@
-// Package mongo is a Gorilla sessions.Store implementation for BadgerDB
-package mongo
+// Package mongostore is a Gorilla sessions.Store implementation for BadgerDB
+package mongostore
 
 import (
 	"context"

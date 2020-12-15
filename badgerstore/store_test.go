@@ -1,4 +1,4 @@
-package badger
+package badgerstore
 
 import (
 	"net/http"

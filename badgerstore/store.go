@@ -1,5 +1,5 @@
-// Package badger is a Gorilla sessions.Store implementation for BadgerDB
-package badger
+// Package badgerstore is a Gorilla sessions.Store implementation for BadgerDB
+package badgerstore
 
 import (
 	"encoding/base32"
@@ -145,6 +145,7 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter,
 	if err != nil {
 		return err
 	}
+
 	http.SetCookie(w, sessions.NewCookie(session.Name(), encoded, session.Options))
 	return nil
 }
@@ -183,6 +184,7 @@ func (s *Store) save(session *sessions.Session) error {
 	if err != nil {
 		return err
 	}
+
 	return s.db.Update(func(txn *badger.Txn) error {
 		err := txn.Set([]byte("session_"+session.ID), []byte(encoded))
 		return err
