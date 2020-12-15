@@ -8,36 +8,44 @@ go get github.com/bh90210/vaGorillaSessionsStores
 ```
 
 # Use
+Errors are excluded for brevity.
 
 ## Badger
 _note: Badger will not work in distributed environments. Use it for local testing or single server scenarios._
 
 ### Using the store is very simple:
 ```go
-	store, err := badger.NewBadgerStore("/path/to/data", []byte(os.Getenv("SESSION_KEY")))
-	if err != nil {
-		log.Fatal(err)
-	}
+import "github.com/bh90210/vaGorillaSessionsStores/badger"
+
+store, _ := badger.NewBadgerStore("/path/to/data", []byte(os.Getenv("SESSION_KEY")))
 ```
-If `path` is empty data will be stores in system's `tmp` directory.
+If `path` is empty data will be stored in system's `tmp` directory.
 
 ### Start a store with custom options (see [Badger's docs](https://dgraph.io/docs/badger) for more):
 ```go
-    opts := badger.Options{}
-    store, err := badger.NewBadgerStoreWithOpts(opts)
-    if err != nil {
-		log.Fatal(err)
-	}
+import "github.com/bh90210/vaGorillaSessionsStores/badger"
+
+opts := badger.Options{
+		Dir: "/data/dir",
+}
+store, _ := badger.NewBadgerStoreWithOpts(opts)
 ```
 
 ## Mongo
 
 ### Starting a store with the default options:
 ```go
+import "github.com/bh90210/vaGorillaSessionsStores/mongo"
+
+store, _ := badger.NewMongoStore("mongodb://localhost:27017")
 ```
 
 ### With custom options:
 ```go
+import "github.com/bh90210/vaGorillaSessionsStores/mongo"
+
+client, _ := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
+store, _ := badger.NewMongoStoreWithOpts(client)
 ```
 
 ## Dgraph

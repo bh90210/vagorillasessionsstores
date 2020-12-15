@@ -6,10 +6,10 @@ import (
 	"testing"
 )
 
-// Test for BadgerStore
-func TestBadgerStore(t *testing.T) {
+// Test for MongoStore
+func TestMongoStore(t *testing.T) {
 	originalPath := "/"
-	store, err := NewBadgerStore("~/test1")
+	store, err := NewMongoStore("")
 	if err != nil {
 		t.Fatal("failed to create request", err)
 	}
@@ -31,9 +31,9 @@ func TestBadgerStore(t *testing.T) {
 	}
 }
 
-// Test delete badger store with max-age: -1
-func TestBadgerStoreDelete(t *testing.T) {
-	store, err := NewBadgerStore("~/test2", []byte("some key"))
+// Test delete Mongo store with max-age: -1
+func TestMongoStoreDelete(t *testing.T) {
+	store, err := NewMongoStore("", []byte("some key"))
 	if err != nil {
 		t.Fatal("failed to create request", err)
 	}
@@ -61,9 +61,9 @@ func TestBadgerStoreDelete(t *testing.T) {
 	}
 }
 
-// Test delete badger store with max-age: 0
-func TestBadgerStoreDelete2(t *testing.T) {
-	store, err := NewBadgerStore("~/test3", []byte("some key"))
+// Test delete Mongo store with max-age: 0
+func TestMongoStoreDelete2(t *testing.T) {
+	store, err := NewMongoStore("", []byte("some key"))
 	if err != nil {
 		t.Fatal("failed to create request", err)
 	}

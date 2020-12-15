@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	badger "github.com/dgraph-io/badger/v2"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"go.mongodb.org/mongo-driver/bson"
@@ -18,10 +17,6 @@ import (
 )
 
 // NewMongoStore returns a new Mongo backed store.
-//
-// Path represents a filesystem directory where Badger is located. It will be created if it doesn't exist.
-// Badger's DefaultOptions are used badger.DefaultOptions(path).
-// For use with custom options see NewBadgerStoreWithOpts()
 //
 // Keys are defined in pairs to allow key rotation, but the common case is
 // to set a single authentication key and optionally an encryption key.
@@ -33,26 +28,16 @@ import (
 // It is recommended to use an authentication key with 32 or 64 bytes.
 // The encryption key, if set, must be either 16, 24, or 32 bytes to select
 // AES-128, AES-192, or AES-256 modes.
-func NewMongoStore(uri string, keyPairs ...[]byte) (*MongoStore, error) {
-	// if path == "" {
-	// 	path = filepath.Join(os.TempDir(), "mongo")
-	// }
-
+func NewMongoStore(uri string, keyPairs ...[]byte) (*Store, error) {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	// defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
-	// client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
 		return nil, err
 	}
 
-	collection := client.Database("testing").Collection("numbers")
-	// db, err := badger.Open(badger.DefaultOptions(path))
-	// if err != nil {
-	// 	return nil, err
-	// }
+	collection := client.Database("sessions").Collection("store")
 
-	store := &MongoStore{
+	store := &Store{
 		Codecs: securecookie.CodecsFromPairs(keyPairs...),
 		Options: &sessions.Options{
 			Path:   "/",
@@ -65,30 +50,32 @@ func NewMongoStore(uri string, keyPairs ...[]byte) (*MongoStore, error) {
 	return store, nil
 }
 
-// NewMongoStoreWithOpts is intended for advanced configuration of Badger.
-// Create a new variable `opts := badger.Options{}` and set on it the desired settings.
-// For more information please see Badger's documentation https://github.com/dgraph-io/badger
-func NewMongoStoreWithOpts(opts badger.Options, keyPairs ...[]byte) (*MongoStore, error) {
-	db, err := badger.Open(opts)
+// NewMongoStoreWithOpts is intended for advanced configuration of Mongo's client.
+// client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
+func NewMongoStoreWithOpts(client *mongo.Client, keyPairs ...[]byte) (*Store, error) {
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	err := client.Connect(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	store := &MongoStore{
+	collection := client.Database("sessions").Collection("store")
+
+	store := &Store{
 		Codecs: securecookie.CodecsFromPairs(keyPairs...),
 		Options: &sessions.Options{
 			Path:   "/",
 			MaxAge: 86400 * 30,
 		},
-		db: db,
+		db: collection,
 	}
 
 	store.MaxAge(store.Options.MaxAge)
 	return store, nil
 }
 
-// BadgerStore stores sessions using BadgerDB
-type MongoStore struct {
+// Store stores sessions using MongoDB
+type Store struct {
 	Codecs  []securecookie.Codec
 	Options *sessions.Options
 	db      *mongo.Collection
@@ -101,7 +88,7 @@ type MongoStore struct {
 //
 // It returns a new session and an error if the session exists but could
 // not be decoded.
-func (s *MongoStore) Get(r *http.Request, name string) (*sessions.Session, error) {
+func (s *Store) Get(r *http.Request, name string) (*sessions.Session, error) {
 	return sessions.GetRegistry(r).Get(s, name)
 }
 
@@ -110,7 +97,7 @@ func (s *MongoStore) Get(r *http.Request, name string) (*sessions.Session, error
 // The difference between New() and Get() is that calling New() twice will
 // decode the session data twice, while Get() registers and reuses the same
 // decoded session after the first call.
-func (s *MongoStore) New(r *http.Request, name string) (*sessions.Session, error) {
+func (s *Store) New(r *http.Request, name string) (*sessions.Session, error) {
 	session := sessions.NewSession(s, name)
 	opts := *s.Options
 	session.Options = &opts
@@ -133,7 +120,7 @@ func (s *MongoStore) New(r *http.Request, name string) (*sessions.Session, error
 // deleted from the store path. With this process it enforces the properly
 // session cookie handling so no need to trust in the cookie management in the
 // web browser.
-func (s *MongoStore) Save(r *http.Request, w http.ResponseWriter,
+func (s *Store) Save(r *http.Request, w http.ResponseWriter,
 	session *sessions.Session) error {
 	// Delete if max-age is <= 0
 	if s.Options.MaxAge <= 0 {
@@ -164,7 +151,7 @@ func (s *MongoStore) Save(r *http.Request, w http.ResponseWriter,
 // MaxAge sets the maximum age for the store and the underlying cookie
 // implementation. Individual sessions can be deleted by setting Options.MaxAge
 // = -1 for that session.
-func (s *MongoStore) MaxAge(age int) {
+func (s *Store) MaxAge(age int) {
 	s.Options.MaxAge = age
 
 	// Set the maxAge for each securecookie instance.
@@ -176,69 +163,54 @@ func (s *MongoStore) MaxAge(age int) {
 }
 
 // Edit is a helper function for editing sessions directly from the back-end store without http request from the user.
-func (s *MongoStore) Edit(session *sessions.Session) {
+func (s *Store) Edit(session *sessions.Session) {
 	if err := s.save(session); err != nil {
 		fmt.Println(err)
 	}
 }
 
 // Delete is a helper function for deleting sessions directly from the back-end store without http request from the user.
-func (s *MongoStore) Delete(session *sessions.Session) {
+func (s *Store) Delete(session *sessions.Session) {
 	if err := s.erase(session); err != nil {
 		fmt.Println(err)
 	}
 }
 
-func (s *MongoStore) save(session *sessions.Session) error {
+func (s *Store) save(session *sessions.Session) error {
 	encoded, err := securecookie.EncodeMulti(session.Name(), session.Values,
 		s.Codecs...)
 	if err != nil {
 		return err
 	}
-	// return s.db.Update(func(txn *badger.Txn) error {
-	// 	err := txn.Set([]byte("session_"+session.ID), []byte(encoded))
-	// 	return err
-	// })
+
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	// res, err := s.db.InsertOne(ctx, bson.M{"name": "pi", "value": 3.14159})
-	_, err = s.db.UpdateOne(ctx, bson.M{session.ID: []byte(encoded)}, "")
+	_, err = s.db.InsertOne(ctx, bson.M{session.ID: []byte(encoded)})
 	return err
 }
 
-func (s *MongoStore) load(session *sessions.Session) error {
-	var queryResp []byte
-
-	err := s.db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte("session_" + session.ID))
-		if err != nil {
-			return err
-		}
-
-		err = item.Value(func(val []byte) error {
-			queryResp = append(queryResp, val...)
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-	if err != nil {
-		return err
+func (s *Store) load(session *sessions.Session) error {
+	var result struct {
+		Value []byte
 	}
 
-	return securecookie.DecodeMulti(session.Name(), string(queryResp), &session.Values, s.Codecs...)
+	filter := bson.M{session.ID: session.ID}
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	err := s.db.FindOne(ctx, filter).Decode(&result)
+	if err != nil {
+		return (err)
+	}
+
+	return securecookie.DecodeMulti(session.Name(), string(result.Value), &session.Values, s.Codecs...)
 }
 
-func (s *MongoStore) erase(session *sessions.Session) error {
-	err := s.db.Update(func(txn *badger.Txn) error {
-		err := txn.Delete([]byte("session_" + session.ID))
-		return err
-	})
+func (s *Store) erase(session *sessions.Session) error {
+	encoded, err := securecookie.EncodeMulti(session.Name(), session.Values,
+		s.Codecs...)
 	if err != nil {
 		return err
 	}
 
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	_, err = s.db.DeleteOne(ctx, bson.M{session.ID: []byte(encoded)})
 	return err
 }
