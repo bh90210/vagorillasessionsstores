@@ -1,5 +1,5 @@
-// Package mongostore is a Gorilla sessions.Store implementation for BadgerDB
-package mongostore
+// Package vagorillasessionsstores is a Gorilla sessions.Store implementation for MongoDB
+package vagorillasessionsstores
 
 import (
 	"context"
@@ -37,7 +37,7 @@ import (
 // It is recommended to use an authentication key with 32 or 64 bytes.
 // The encryption key, if set, must be either 16, 24, or 32 bytes to select
 // AES-128, AES-192, or AES-256 modes.
-func NewMongoStore(opts *options.ClientOptions, keyPairs ...[]byte) (*Store, error) {
+func NewMongoStore(opts *options.ClientOptions, keyPairs ...[]byte) (*MongoStore, error) {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
@@ -46,7 +46,7 @@ func NewMongoStore(opts *options.ClientOptions, keyPairs ...[]byte) (*Store, err
 
 	collection := client.Database("sessions").Collection("store")
 
-	store := &Store{
+	store := &MongoStore{
 		Codecs: securecookie.CodecsFromPairs(keyPairs...),
 		Options: &sessions.Options{
 			Path:   "/",
@@ -84,7 +84,7 @@ func NewMongoStore(opts *options.ClientOptions, keyPairs ...[]byte) (*Store, err
 // }
 
 // Store stores sessions using MongoDB
-type Store struct {
+type MongoStore struct {
 	Codecs  []securecookie.Codec
 	Options *sessions.Options
 	db      *mongo.Collection
@@ -97,7 +97,7 @@ type Store struct {
 //
 // It returns a new session and an error if the session exists but could
 // not be decoded.
-func (s *Store) Get(r *http.Request, name string) (*sessions.Session, error) {
+func (s *MongoStore) Get(r *http.Request, name string) (*sessions.Session, error) {
 	return sessions.GetRegistry(r).Get(s, name)
 }
 
@@ -106,7 +106,7 @@ func (s *Store) Get(r *http.Request, name string) (*sessions.Session, error) {
 // The difference between New() and Get() is that calling New() twice will
 // decode the session data twice, while Get() registers and reuses the same
 // decoded session after the first call.
-func (s *Store) New(r *http.Request, name string) (*sessions.Session, error) {
+func (s *MongoStore) New(r *http.Request, name string) (*sessions.Session, error) {
 	session := sessions.NewSession(s, name)
 	opts := *s.Options
 	session.Options = &opts
@@ -129,7 +129,7 @@ func (s *Store) New(r *http.Request, name string) (*sessions.Session, error) {
 // deleted from the store path. With this process it enforces the properly
 // session cookie handling so no need to trust in the cookie management in the
 // web browser.
-func (s *Store) Save(r *http.Request, w http.ResponseWriter,
+func (s *MongoStore) Save(r *http.Request, w http.ResponseWriter,
 	session *sessions.Session) error {
 	// Delete if max-age is <= 0
 	if s.Options.MaxAge <= 0 {
@@ -160,7 +160,7 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter,
 // MaxAge sets the maximum age for the store and the underlying cookie
 // implementation. Individual sessions can be deleted by setting Options.MaxAge
 // = -1 for that session.
-func (s *Store) MaxAge(age int) {
+func (s *MongoStore) MaxAge(age int) {
 	s.Options.MaxAge = age
 
 	// Set the maxAge for each securecookie instance.
@@ -172,14 +172,14 @@ func (s *Store) MaxAge(age int) {
 }
 
 // Edit is a helper function for editing sessions directly from the back-end store without http request from the user.
-func (s *Store) Edit(session *sessions.Session) {
+func (s *MongoStore) Edit(session *sessions.Session) {
 	if err := s.save(session); err != nil {
 		fmt.Println(err)
 	}
 }
 
 // Delete is a helper function for deleting sessions directly from the back-end store without http request from the user.
-func (s *Store) Delete(session *sessions.Session) {
+func (s *MongoStore) Delete(session *sessions.Session) {
 	if err := s.erase(session); err != nil {
 		fmt.Println(err)
 	}
@@ -191,7 +191,7 @@ type SessionEntry struct {
 	Value     string             `bson:"value,omitempty"`
 }
 
-func (s *Store) save(session *sessions.Session) error {
+func (s *MongoStore) save(session *sessions.Session) error {
 	encoded, err := securecookie.EncodeMulti(session.Name(), session.Values,
 		s.Codecs...)
 	if err != nil {
@@ -212,7 +212,7 @@ func (s *Store) save(session *sessions.Session) error {
 	return err
 }
 
-func (s *Store) load(session *sessions.Session) error {
+func (s *MongoStore) load(session *sessions.Session) error {
 	var result SessionEntry
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -231,7 +231,7 @@ func (s *Store) load(session *sessions.Session) error {
 	return securecookie.DecodeMulti(session.Name(), string(result.Value), &session.Values, s.Codecs...)
 }
 
-func (s *Store) erase(session *sessions.Session) error {
+func (s *MongoStore) erase(session *sessions.Session) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	entry := SessionEntry{

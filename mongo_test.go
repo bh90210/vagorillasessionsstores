@@ -1,4 +1,4 @@
-package mongostore
+package vagorillasessionsstores
 
 // import (
 // 	"net/http"

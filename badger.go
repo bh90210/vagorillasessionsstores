@@ -1,5 +1,5 @@
-// Package badgerstore is a Gorilla sessions.Store implementation for BadgerDB
-package badgerstore
+// Package vagorillasessionsstores is a Gorilla sessions.Store implementation for BadgerDB
+package vagorillasessionsstores
 
 import (
 	"encoding/base32"
@@ -30,7 +30,7 @@ import (
 // It is recommended to use an authentication key with 32 or 64 bytes.
 // The encryption key, if set, must be either 16, 24, or 32 bytes to select
 // AES-128, AES-192, or AES-256 modes.
-func NewBadgerStore(path string, keyPairs ...[]byte) (*Store, error) {
+func NewBadgerStore(path string, keyPairs ...[]byte) (*BadgerStore, error) {
 	if path == "" {
 		path = filepath.Join(os.TempDir(), "badger")
 	}
@@ -40,7 +40,7 @@ func NewBadgerStore(path string, keyPairs ...[]byte) (*Store, error) {
 		return nil, err
 	}
 
-	store := &Store{
+	store := &BadgerStore{
 		Codecs: securecookie.CodecsFromPairs(keyPairs...),
 		Options: &sessions.Options{
 			Path:   "/",
@@ -56,13 +56,13 @@ func NewBadgerStore(path string, keyPairs ...[]byte) (*Store, error) {
 // NewBadgerStoreWithOpts is intended for advanced configuration of Badger.
 // Create a new variable `opts := badger.Options{}` and set on it the desired settings.
 // For more information please see Badger's documentation https://github.com/dgraph-io/badger
-func NewBadgerStoreWithOpts(opts badger.Options, keyPairs ...[]byte) (*Store, error) {
+func NewBadgerStoreWithOpts(opts badger.Options, keyPairs ...[]byte) (*BadgerStore, error) {
 	db, err := badger.Open(opts)
 	if err != nil {
 		return nil, err
 	}
 
-	store := &Store{
+	store := &BadgerStore{
 		Codecs: securecookie.CodecsFromPairs(keyPairs...),
 		Options: &sessions.Options{
 			Path:   "/",
@@ -76,7 +76,7 @@ func NewBadgerStoreWithOpts(opts badger.Options, keyPairs ...[]byte) (*Store, er
 }
 
 // Store stores sessions using BadgerDB
-type Store struct {
+type BadgerStore struct {
 	Codecs  []securecookie.Codec
 	Options *sessions.Options
 	db      *badger.DB
@@ -89,7 +89,7 @@ type Store struct {
 //
 // It returns a new session and an error if the session exists but could
 // not be decoded.
-func (s *Store) Get(r *http.Request, name string) (*sessions.Session, error) {
+func (s *BadgerStore) Get(r *http.Request, name string) (*sessions.Session, error) {
 	return sessions.GetRegistry(r).Get(s, name)
 }
 
@@ -98,7 +98,7 @@ func (s *Store) Get(r *http.Request, name string) (*sessions.Session, error) {
 // The difference between New() and Get() is that calling New() twice will
 // decode the session data twice, while Get() registers and reuses the same
 // decoded session after the first call.
-func (s *Store) New(r *http.Request, name string) (*sessions.Session, error) {
+func (s *BadgerStore) New(r *http.Request, name string) (*sessions.Session, error) {
 	session := sessions.NewSession(s, name)
 	opts := *s.Options
 	session.Options = &opts
@@ -121,7 +121,7 @@ func (s *Store) New(r *http.Request, name string) (*sessions.Session, error) {
 // deleted from the store path. With this process it enforces the properly
 // session cookie handling so no need to trust in the cookie management in the
 // web browser.
-func (s *Store) Save(r *http.Request, w http.ResponseWriter,
+func (s *BadgerStore) Save(r *http.Request, w http.ResponseWriter,
 	session *sessions.Session) error {
 	// Delete if max-age is <= 0
 	if s.Options.MaxAge <= 0 {
@@ -153,7 +153,7 @@ func (s *Store) Save(r *http.Request, w http.ResponseWriter,
 // MaxAge sets the maximum age for the store and the underlying cookie
 // implementation. Individual sessions can be deleted by setting Options.MaxAge
 // = -1 for that session.
-func (s *Store) MaxAge(age int) {
+func (s *BadgerStore) MaxAge(age int) {
 	s.Options.MaxAge = age
 
 	// Set the maxAge for each securecookie instance.
@@ -165,20 +165,20 @@ func (s *Store) MaxAge(age int) {
 }
 
 // Edit is a helper function for editing sessions directly from the back-end store without http request from the user.
-func (s *Store) Edit(session *sessions.Session) {
+func (s *BadgerStore) Edit(session *sessions.Session) {
 	if err := s.save(session); err != nil {
 		fmt.Println(err)
 	}
 }
 
 // Delete is a helper function for deleting sessions directly from the back-end store without http request from the user.
-func (s *Store) Delete(session *sessions.Session) {
+func (s *BadgerStore) Delete(session *sessions.Session) {
 	if err := s.erase(session); err != nil {
 		fmt.Println(err)
 	}
 }
 
-func (s *Store) save(session *sessions.Session) error {
+func (s *BadgerStore) save(session *sessions.Session) error {
 	encoded, err := securecookie.EncodeMulti(session.Name(), session.Values,
 		s.Codecs...)
 	if err != nil {
@@ -191,7 +191,7 @@ func (s *Store) save(session *sessions.Session) error {
 	})
 }
 
-func (s *Store) load(session *sessions.Session) error {
+func (s *BadgerStore) load(session *sessions.Session) error {
 	var queryResp []byte
 
 	err := s.db.View(func(txn *badger.Txn) error {
@@ -217,7 +217,7 @@ func (s *Store) load(session *sessions.Session) error {
 	return securecookie.DecodeMulti(session.Name(), string(queryResp), &session.Values, s.Codecs...)
 }
 
-func (s *Store) erase(session *sessions.Session) error {
+func (s *BadgerStore) erase(session *sessions.Session) error {
 	err := s.db.Update(func(txn *badger.Txn) error {
 		err := txn.Delete([]byte("session_" + session.ID))
 		return err
