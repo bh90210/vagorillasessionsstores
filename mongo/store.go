@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base32"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -204,7 +205,10 @@ func (s *Store) save(session *sessions.Session) error {
 		SessionID: session.ID,
 		Value:     encoded,
 	}
-	_, err = s.db.InsertOne(ctx, newEntry)
+	res, err := s.db.InsertOne(ctx, newEntry)
+	log.Println(res)
+	log.Println(res.InsertedID)
+
 	return err
 }
 
@@ -216,7 +220,9 @@ func (s *Store) load(session *sessions.Session) error {
 	entry := SessionEntry{
 		SessionID: session.ID,
 	}
-	err := s.db.FindOne(ctx, entry).Decode(&result)
+	res := s.db.FindOne(ctx, entry)
+	log.Println(res)
+	err := res.Decode(&result)
 	if err != nil {
 		return (err)
 	}
@@ -230,6 +236,7 @@ func (s *Store) erase(session *sessions.Session) error {
 	entry := SessionEntry{
 		SessionID: session.ID,
 	}
-	_, err := s.db.DeleteOne(ctx, entry)
+	res, err := s.db.DeleteOne(ctx, entry)
+	log.Println(res)
 	return err
 }
