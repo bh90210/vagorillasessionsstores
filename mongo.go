@@ -4,7 +4,6 @@ package vagorillasessionsstores
 import (
 	"context"
 	"encoding/base32"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -27,6 +26,10 @@ import (
 //
 // clientOptions := options.Client().ApplyURI(os.Getenv("MONGO_DB_URI")).SetAuth(cred)
 //
+// If databaseName is left empty "" a default "sessions" named database will be created.
+//
+// If collectionName is left empty "" a default "store" named collection will be created.
+//
 // Keys are defined in pairs to allow key rotation, but the common case is
 // to set a single authentication key and optionally an encryption key.
 //
@@ -37,14 +40,22 @@ import (
 // It is recommended to use an authentication key with 32 or 64 bytes.
 // The encryption key, if set, must be either 16, 24, or 32 bytes to select
 // AES-128, AES-192, or AES-256 modes.
-func NewMongoStore(opts *options.ClientOptions, keyPairs ...[]byte) (*MongoStore, error) {
+func NewMongoStore(opts *options.ClientOptions, databaseName string, collectionName string, keyPairs ...[]byte) (*MongoStore, error) {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	collection := client.Database("sessions").Collection("store")
+	if databaseName == "" {
+		databaseName = "sessions"
+	}
+
+	if collectionName == "" {
+		collectionName = "store"
+	}
+
+	collection := client.Database(databaseName).Collection(collectionName)
 
 	store := &MongoStore{
 		Codecs: securecookie.CodecsFromPairs(keyPairs...),
@@ -171,20 +182,6 @@ func (s *MongoStore) MaxAge(age int) {
 		if sc, ok := codec.(*securecookie.SecureCookie); ok {
 			sc.MaxAge(age)
 		}
-	}
-}
-
-// Edit is a helper function for editing sessions directly from the back-end store without http request from the user.
-func (s *MongoStore) Edit(session *sessions.Session) {
-	if err := s.save(session); err != nil {
-		fmt.Println(err)
-	}
-}
-
-// Delete is a helper function for deleting sessions directly from the back-end store without http request from the user.
-func (s *MongoStore) Delete(session *sessions.Session) {
-	if err := s.erase(session); err != nil {
-		fmt.Println(err)
 	}
 }
 

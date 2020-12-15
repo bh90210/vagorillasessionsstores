@@ -49,11 +49,14 @@ import (
 )
 
 var cred options.Credential
+
 cred.AuthSource = "YourAuthSource"
 cred.Username = "YourUserName"
 cred.Password = "YourPassword"
+
 clientOptions := options.Client().ApplyURI(os.Getenv("MONGO_DB_URI")).SetAuth(cred)
-store, _ := stores.NewMongoStore(clientOptions, []byte(os.Getenv("SESSION_KEY")))
+
+store, _ := stores.NewMongoStore(clientOptions, "databaseName", "collectionName", []byte(os.Getenv("SESSION_KEY")))
 ```
 
 ## Dgraph
