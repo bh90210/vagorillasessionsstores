@@ -30,6 +30,14 @@ opts := badger.Options{
 }
 store, _ := stores.NewBadgerStoreWithOpts(opts,[]byte(os.Getenv("SESSION_KEY")))
 ```
+## Help functions
+Each store provides two helper functions for direct back-end session manipulation without http request. 
+
+### Edit
+_work in progress_
+
+### Delete 
+_work in progress_
 
 ## Mongo
 
@@ -49,13 +57,4 @@ store, _ := stores.NewMongoStore(clientOptions, []byte(os.Getenv("SESSION_KEY"))
 ```
 
 ## Dgraph
-_work in progress_
-
-## Help functions
-Each store provides two helper functions for direct back-end session manipulation without http request. 
-
-### Edit
-_work in progress_
-
-### Delete 
 _work in progress_
