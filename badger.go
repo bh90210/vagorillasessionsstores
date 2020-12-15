@@ -75,7 +75,7 @@ func NewBadgerStoreWithOpts(opts badger.Options, keyPairs ...[]byte) (*BadgerSto
 	return store, nil
 }
 
-// Store stores sessions using BadgerDB
+// BadgerStore stores sessions using BadgerDB
 type BadgerStore struct {
 	Codecs  []securecookie.Codec
 	Options *sessions.Options

@@ -83,7 +83,7 @@ func NewMongoStore(opts *options.ClientOptions, keyPairs ...[]byte) (*MongoStore
 // 	return store, nil
 // }
 
-// Store stores sessions using MongoDB
+// MongoStore stores sessions using MongoDB
 type MongoStore struct {
 	Codecs  []securecookie.Codec
 	Options *sessions.Options
