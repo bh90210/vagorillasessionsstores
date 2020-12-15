@@ -206,7 +206,7 @@ func (s *Store) save(session *sessions.Session) error {
 		Value:     encoded,
 	}
 	res, err := s.db.InsertOne(ctx, newEntry)
-	log.Println(res)
+	log.Println("response", res)
 	log.Println(res.InsertedID)
 
 	return err
