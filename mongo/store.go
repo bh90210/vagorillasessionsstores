@@ -221,8 +221,9 @@ func (s *Store) load(session *sessions.Session) error {
 		SessionID: session.ID,
 	}
 	res := s.db.FindOne(ctx, entry)
-	log.Println(res)
+	log.Println("response", res)
 	err := res.Decode(&result)
+	log.Println("result", result)
 	if err != nil {
 		return (err)
 	}
