@@ -15,46 +15,43 @@ _note: Badger will not work in distributed environments. Use it for local testin
 
 ### Using the store is very simple:
 ```go
-import "github.com/bh90210/vaGorillaSessionsStores/badger"
+import badgerStore "github.com/bh90210/vaGorillaSessionsStores/badger"
 
-store, _ := badger.NewBadgerStore("/path/to/data", []byte(os.Getenv("SESSION_KEY")))
+store, _ := badgerStore.NewBadgerStore("/path/to/data", []byte(os.Getenv("SESSION_KEY")))
 ```
 If `path` is empty data will be stored in system's `tmp` directory.
 
 ### Start a store with custom options (see [Badger's docs](https://dgraph.io/docs/badger) for more):
 ```go
-import "github.com/bh90210/vaGorillaSessionsStores/badger"
+import badgerStore "github.com/bh90210/vaGorillaSessionsStores/badger"
 
 opts := badger.Options{
 		Dir: "/data/dir",
 }
-store, _ := badger.NewBadgerStoreWithOpts(opts)
+store, _ := badgerStore.NewBadgerStoreWithOpts(opts)
 ```
 
 ## Mongo
 
-### Starting a store with the default options:
-```go
-import "github.com/bh90210/vaGorillaSessionsStores/mongo"
-
-store, _ := mongo.NewMongoStore("mongodb://localhost:27017")
-```
-
-### With custom options:
+### Starting a store entails passing credentials and client options (official go mongo driver is necessary):
 ```go
 import (
 	mongoStore "github.com/bh90210/vaGorillaSessionsStores/mongo"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-client, _ := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
-store, _ := mongoStore.NewMongoStoreWithOpts(client)
+var cred options.Credential
+cred.AuthSource = "YourAuthSource"
+cred.Username = "YourUserName"
+cred.Password = "YourPassword"
+clientOptions := options.Client().ApplyURI(os.Getenv("MONGO_DB_URI")).SetAuth(cred)
+store, _ := mongo.NewMongoStore(clientOptions)
 ```
 
 ## Dgraph
 _work in progress_
 
-## Help function
+## Help functions
 Each store provides two helper functions for direct back-end session manipulation without http request. 
 
 ### Edit

@@ -18,6 +18,14 @@ import (
 
 // NewMongoStore returns a new Mongo backed store.
 //
+// var cred options.Credential
+//
+// cred.AuthSource = "YourAuthSource"
+// cred.Username = "YourUserName"
+// cred.Password = "YourPassword"
+//
+// clientOptions := options.Client().ApplyURI(os.Getenv("MONGO_DB_URI")).SetAuth(cred)
+//
 // Keys are defined in pairs to allow key rotation, but the common case is
 // to set a single authentication key and optionally an encryption key.
 //
@@ -28,9 +36,9 @@ import (
 // It is recommended to use an authentication key with 32 or 64 bytes.
 // The encryption key, if set, must be either 16, 24, or 32 bytes to select
 // AES-128, AES-192, or AES-256 modes.
-func NewMongoStore(uri string, keyPairs ...[]byte) (*Store, error) {
+func NewMongoStore(opts *options.ClientOptions, keyPairs ...[]byte) (*Store, error) {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -52,27 +60,27 @@ func NewMongoStore(uri string, keyPairs ...[]byte) (*Store, error) {
 
 // NewMongoStoreWithOpts is intended for advanced configuration of Mongo's client.
 // client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
-func NewMongoStoreWithOpts(client *mongo.Client, keyPairs ...[]byte) (*Store, error) {
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	err := client.Connect(ctx)
-	if err != nil {
-		return nil, err
-	}
+// func NewMongoStoreWithOpts(client *mongo.Client, keyPairs ...[]byte) (*Store, error) {
+// 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+// 	err := client.Connect(ctx)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	collection := client.Database("sessions").Collection("store")
+// 	collection := client.Database("sessions").Collection("store")
 
-	store := &Store{
-		Codecs: securecookie.CodecsFromPairs(keyPairs...),
-		Options: &sessions.Options{
-			Path:   "/",
-			MaxAge: 86400 * 30,
-		},
-		db: collection,
-	}
+// 	store := &Store{
+// 		Codecs: securecookie.CodecsFromPairs(keyPairs...),
+// 		Options: &sessions.Options{
+// 			Path:   "/",
+// 			MaxAge: 86400 * 30,
+// 		},
+// 		db: collection,
+// 	}
 
-	store.MaxAge(store.Options.MaxAge)
-	return store, nil
-}
+// 	store.MaxAge(store.Options.MaxAge)
+// 	return store, nil
+// }
 
 // Store stores sessions using MongoDB
 type Store struct {
