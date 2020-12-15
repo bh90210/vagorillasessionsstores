@@ -1,4 +1,4 @@
-# vaGorillaSessionsStores [![GoDoc](https://godoc.org/github.com/bh90210/va-gorilla-sessions-store?status.svg)](https://godoc.org/github.com/bh90210/va-gorilla-sessions-store)
+# vagorillasessionsstores [![GoDoc](https://godoc.org/github.com/bh90210/va-gorilla-sessions-store?status.svg)](https://godoc.org/github.com/bh90210/va-gorilla-sessions-store)
 Collection of various Gorilla Sessions back-end stores.
 
 # Install
