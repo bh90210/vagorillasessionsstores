@@ -12,6 +12,7 @@ import (
 
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -145,14 +146,17 @@ func (s *MongoStore) Save(r *http.Request, w http.ResponseWriter,
 			base32.StdEncoding.EncodeToString(
 				securecookie.GenerateRandomKey(32)), "=")
 	}
+	log.Println("pre save")
 	if err := s.save(session); err != nil {
 		return err
 	}
+	log.Println("after save")
 	encoded, err := securecookie.EncodeMulti(session.Name(), session.ID,
 		s.Codecs...)
 	if err != nil {
 		return err
 	}
+	log.Println("cookies set")
 	http.SetCookie(w, sessions.NewCookie(session.Name(), encoded, session.Options))
 	return nil
 }
@@ -198,16 +202,20 @@ func (s *MongoStore) save(session *sessions.Session) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	// _, err = s.db.InsertOne(ctx, bson.M{"sessionID": session.ID, "value": encoded})
-	newEntry := SessionEntry{
+	filt := SessionEntry{
 		SessionID: session.ID,
-		Value:     encoded,
 	}
-	res, err := s.db.InsertOne(ctx, newEntry)
-	log.Println("response", res)
-	log.Println(res.InsertedID)
+
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	opts := options.Update().SetUpsert(true)
+	_, err = s.db.UpdateOne(
+		ctx,
+		filt,
+		bson.D{
+			{"$set", bson.D{{"value", encoded}, {"sessionid", session.ID}}},
+		},
+		opts,
+	)
 
 	return err
 }
@@ -215,15 +223,12 @@ func (s *MongoStore) save(session *sessions.Session) error {
 func (s *MongoStore) load(session *sessions.Session) error {
 	var result SessionEntry
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	entry := SessionEntry{
 		SessionID: session.ID,
 	}
 	res := s.db.FindOne(ctx, entry)
-	log.Println("response", res)
 	err := res.Decode(&result)
-	log.Println("result", result.Value)
 	if err != nil {
 		return (err)
 	}
@@ -232,12 +237,11 @@ func (s *MongoStore) load(session *sessions.Session) error {
 }
 
 func (s *MongoStore) erase(session *sessions.Session) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	entry := SessionEntry{
 		SessionID: session.ID,
 	}
-	res, err := s.db.DeleteOne(ctx, entry)
-	log.Println(res)
+	_, err := s.db.DeleteOne(ctx, entry)
+
 	return err
 }
