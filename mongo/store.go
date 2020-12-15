@@ -210,7 +210,9 @@ func (s *Store) load(session *sessions.Session) error {
 	}
 
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	err := s.db.FindOne(ctx, bson.M{"sessionid": session.ID}).Decode(&result)
+	err := s.db.FindOne(ctx, bson.D{
+		{Key: "sessionid", Value: session.ID},
+	}).Decode(&result)
 	if err != nil {
 		return (err)
 	}
