@@ -77,7 +77,7 @@ func NewDgraphStoreWithSchema(conn *grpc.ClientConn, keyPairs ...[]byte) (*Dgrap
 
 	op := &api.Operation{}
 	op.Schema = `
-	sessionid: string @index(hash) .
+	sessionid: string @index(hash) . 
 	sessionvalue: string . 
 	type Session {
 		sessionid
@@ -242,7 +242,7 @@ func (s *DgraphStore) load(session *sessions.Session) error {
 	ctx := context.Background()
 
 	query := `{
-	q(func: eq(sessionid, ` + session.ID + `)) {
+	q(func: eq(sessionid, "` + session.ID + `")) {
 	  sessionvalue
 	}
 }`
@@ -273,7 +273,7 @@ func (s *DgraphStore) erase(session *sessions.Session) error {
 	ctx := context.Background()
 
 	query := `{
-		  q(func: eq(sessionid, ` + session.ID + `)) {
+		  q(func: eq(sessionid, "` + session.ID + `")) {
 			v as uid
 		  }
 }`
