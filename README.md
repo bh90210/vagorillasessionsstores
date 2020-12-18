@@ -51,7 +51,7 @@ cred.Password = "YourPassword"
 
 clientOptions := options.Client().ApplyURI(os.Getenv("MONGO_DB_URI")).SetAuth(cred)
 
-ctx, _ := context.Background()
+ctx := context.Background()
 client, _ := mongo.Connect(ctx, opts)
 
 store, _ := stores.NewMongoStore(client, "databaseName", "collectionName", []byte(os.Getenv("SESSION_KEY")))
