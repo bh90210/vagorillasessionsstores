@@ -1,4 +1,4 @@
-// Package vagorillasessionsstores is a Gorilla sessions.Store implementation for MongoDB
+// Package vagorillasessionsstores is a Gorilla sessions.Store implementation for BadgerDB, MongoDB and Dgraph
 package vagorillasessionsstores
 
 import (
@@ -17,17 +17,8 @@ import (
 )
 
 // NewMongoStore returns a new Mongo backed store.
-//
-// var cred options.Credential
-//
-// cred.AuthSource = "YourAuthSource"
-// cred.Username = "YourUserName"
-// cred.Password = "YourPassword"
-//
-// clientOptions := options.Client().ApplyURI(os.Getenv("MONGO_DB_URI")).SetAuth(cred)
-//
+// opts expects options.Client() mongo driver client options.
 // If databaseName is left empty "" a default "sessions" named database will be created.
-//
 // If collectionName is left empty "" a default "store" named collection will be created.
 //
 // Keys are defined in pairs to allow key rotation, but the common case is
@@ -40,13 +31,7 @@ import (
 // It is recommended to use an authentication key with 32 or 64 bytes.
 // The encryption key, if set, must be either 16, 24, or 32 bytes to select
 // AES-128, AES-192, or AES-256 modes.
-func NewMongoStore(opts *options.ClientOptions, databaseName string, collectionName string, keyPairs ...[]byte) (*MongoStore, error) {
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	client, err := mongo.Connect(ctx, opts)
-	if err != nil {
-		return nil, err
-	}
-
+func NewMongoStore(client *mongo.Client, databaseName string, collectionName string, keyPairs ...[]byte) (*MongoStore, error) {
 	if databaseName == "" {
 		databaseName = "sessions"
 	}
@@ -69,30 +54,6 @@ func NewMongoStore(opts *options.ClientOptions, databaseName string, collectionN
 	store.MaxAge(store.Options.MaxAge)
 	return store, nil
 }
-
-// NewMongoStoreWithOpts is intended for advanced configuration of Mongo's client.
-// client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
-// func NewMongoStoreWithOpts(client *mongo.Client, keyPairs ...[]byte) (*Store, error) {
-// 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-// 	err := client.Connect(ctx)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	collection := client.Database("sessions").Collection("store")
-
-// 	store := &Store{
-// 		Codecs: securecookie.CodecsFromPairs(keyPairs...),
-// 		Options: &sessions.Options{
-// 			Path:   "/",
-// 			MaxAge: 86400 * 30,
-// 		},
-// 		db: collection,
-// 	}
-
-// 	store.MaxAge(store.Options.MaxAge)
-// 	return store, nil
-// }
 
 // MongoStore stores sessions using MongoDB
 type MongoStore struct {

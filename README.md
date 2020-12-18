@@ -34,10 +34,10 @@ store, _ := stores.NewBadgerStoreWithOpts(opts,[]byte(os.Getenv("SESSION_KEY")))
 Two helper functions for direct back-end session manipulation without http request. 
 
 #### Edit
-_work in progress_
+_wip_
 
 #### Delete 
-_work in progress_
+_wip_
 
 ## Mongo
 
@@ -45,6 +45,7 @@ _work in progress_
 ```go
 import (
 	stores "github.com/bh90210/vagorillasessionsstores"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -56,8 +57,46 @@ cred.Password = "YourPassword"
 
 clientOptions := options.Client().ApplyURI(os.Getenv("MONGO_DB_URI")).SetAuth(cred)
 
-store, _ := stores.NewMongoStore(clientOptions, "databaseName", "collectionName", []byte(os.Getenv("SESSION_KEY")))
+ctx, _ := context.Background()
+client, _ := mongo.Connect(ctx, opts)
+
+store, _ := stores.NewMongoStore(client, "databaseName", "collectionName", []byte(os.Getenv("SESSION_KEY")))
 ```
+_If 'databaseName' & 'collectionName' are left empty the defaults are used ('sessions' & 'store')._
 
 ## Dgraph
-_work in progress_
+
+_store uses dgo/v200_
+
+Assumed schema
+```yaml
+sessionid: string @index(hash) .
+sessionvalue: string . 
+type Session {
+	sessionid
+	sessionvalue
+}
+```
+
+```go
+import (
+	stores "github.com/bh90210/vagorillasessionsstores"
+	"google.golang.org/grpc"
+)
+
+conn, _err_ := grpc.Dial("127.0.0.1:9080", grpc.WithInsecure())
+
+store, _ := stores.NewDgraphStore(conn, []byte(os.Getenv("SESSION_KEY")))
+```
+
+You can also let schema initiation to the store
+```go
+import (
+	stores "github.com/bh90210/vagorillasessionsstores"
+	"google.golang.org/grpc"
+)
+
+conn, _err_ := grpc.Dial("127.0.0.1:9080", grpc.WithInsecure())
+
+store, _ := stores.NewDgraphStoreWithSchema(conn, []byte(os.Getenv("SESSION_KEY")))
+```

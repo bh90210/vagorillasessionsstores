@@ -1,4 +1,4 @@
-// Package vagorillasessionsstores is a Gorilla sessions.Store implementation for BadgerDB
+// Package vagorillasessionsstores is a Gorilla sessions.Store implementation for BadgerDB, MongoDB and Dgraph
 package vagorillasessionsstores
 
 import (
