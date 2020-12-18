@@ -33,12 +33,6 @@ store, _ := stores.NewBadgerStoreWithOpts(opts,[]byte(os.Getenv("SESSION_KEY")))
 ### Help functions
 Two helper functions for direct back-end session manipulation without http request. 
 
-#### Edit
-_wip_
-
-#### Delete 
-_wip_
-
 ## Mongo
 
 ### Starting a store entails passing credentials and client options (official go mongo driver is necessary):
@@ -68,7 +62,7 @@ _If 'databaseName' & 'collectionName' are left empty the defaults are used ('ses
 
 _store uses dgo/v200_
 
-Assumed schema
+Assumed schema:
 ```yaml
 sessionid: string @index(hash) .
 sessionvalue: string . 
@@ -89,7 +83,7 @@ conn, _err_ := grpc.Dial("127.0.0.1:9080", grpc.WithInsecure())
 store, _ := stores.NewDgraphStore(conn, []byte(os.Getenv("SESSION_KEY")))
 ```
 
-You can also let schema initiation to the store
+You can also let schema initiation to the store:
 ```go
 import (
 	stores "github.com/bh90210/vagorillasessionsstores"

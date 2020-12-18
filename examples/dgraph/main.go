@@ -15,7 +15,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	store, err := stores.NewDgraphStore(conn, []byte("SESSION_KEY"))
+	store, err := stores.NewDgraphStoreWithSchema(conn, []byte("SESSION_KEY"))
 	if err != nil {
 		log.Fatal("eee", err)
 	}
@@ -23,7 +23,7 @@ func main() {
 	store.Options.HttpOnly = false
 	store.Options.Secure = false
 	store.Options.SameSite = http.SameSiteStrictMode
-	store.Options.MaxAge = 5
+	store.Options.MaxAge = 500
 
 	r := mux.NewRouter()
 
@@ -45,6 +45,13 @@ func main() {
 		}
 
 		if session.Values["test"] == true {
+			session.Options.MaxAge = -1
+			err := session.Save(r, w)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
 			w.Write([]byte("OK"))
 			return
 		}

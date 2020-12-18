@@ -3,7 +3,6 @@ package vagorillasessionsstores
 
 import (
 	"encoding/base32"
-	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -124,7 +123,7 @@ func (s *BadgerStore) New(r *http.Request, name string) (*sessions.Session, erro
 func (s *BadgerStore) Save(r *http.Request, w http.ResponseWriter,
 	session *sessions.Session) error {
 	// Delete if max-age is <= 0
-	if s.Options.MaxAge <= 0 {
+	if session.Options.MaxAge <= 0 {
 		if err := s.erase(session); err != nil {
 			return err
 		}
@@ -161,20 +160,6 @@ func (s *BadgerStore) MaxAge(age int) {
 		if sc, ok := codec.(*securecookie.SecureCookie); ok {
 			sc.MaxAge(age)
 		}
-	}
-}
-
-// Edit is a helper function for editing sessions directly from the back-end store without http request from the user.
-func (s *BadgerStore) Edit(session *sessions.Session) {
-	if err := s.save(session); err != nil {
-		fmt.Println(err)
-	}
-}
-
-// Delete is a helper function for deleting sessions directly from the back-end store without http request from the user.
-func (s *BadgerStore) Delete(session *sessions.Session) {
-	if err := s.erase(session); err != nil {
-		fmt.Println(err)
 	}
 }
 

@@ -153,7 +153,7 @@ func (s *DgraphStore) New(r *http.Request, name string) (*sessions.Session, erro
 func (s *DgraphStore) Save(r *http.Request, w http.ResponseWriter,
 	session *sessions.Session) error {
 	// Delete if max-age is <= 0
-	if s.Options.MaxAge <= 0 {
+	if session.Options.MaxAge <= 0 {
 		if err := s.erase(session); err != nil {
 			return err
 		}
