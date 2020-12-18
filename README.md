@@ -73,8 +73,8 @@ Assumed schema
 sessionid: string @index(hash) .
 sessionvalue: string . 
 type Session {
-	sessionid
-	sessionvalue
+  sessionid
+  sessionvalue
 }
 ```
 
