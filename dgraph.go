@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base32"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strings"
@@ -266,7 +267,11 @@ func (s *DgraphStore) load(session *sessions.Session) error {
 		return err
 	}
 
-	return securecookie.DecodeMulti(session.Name(), string(r.Q[0].SessionValue), &session.Values, s.Codecs...)
+	if len(r.Q[0].SessionValue) == 0 {
+		return errors.New("no key found")
+	}
+
+	return securecookie.DecodeMulti(session.Name(), r.Q[0].SessionValue, &session.Values, s.Codecs...)
 }
 
 func (s *DgraphStore) erase(session *sessions.Session) error {
